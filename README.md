@@ -101,3 +101,70 @@ You can further use AI (LLMs) to generate SQL queries, explain results, or handl
 Summary:
 AI is used for understanding user intent (via embeddings) and matching it to your data (semantic search).
 If you add LLMs for query generation or explanations, that’s an additional AI layer.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+ (for backend)
+- Node.js & npm (for frontend)
+- (Optional) A virtual environment for Python
+
+### 1. Clone the Repository
+
+```sh
+git clone https://github.com/Basmo90/Premier-League-2024-2025-AI-SQL-agent.git
+cd Premier-League-2024-2025-AI-SQL-agent
+```
+
+### 2. Backend Setup
+
+```sh
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt  # Or install manually: kagglehub pandas chromadb langchain sentence-transformers fastapi uvicorn
+```
+
+- Make sure your `.env` file is set up with any required API keys (see `.env.example` if provided).
+...
+- **API Keys:**  
+  If your backend requires an API key (e.g. for OpenAI), you must create a `.env` file in the project root and add your key:
+  ```
+  OPENAI_API_KEY=your-key-here
+  ```
+  You can get an API key by signing up at [OpenAI](https://platform.openai.com/signup) or the relevant provider.
+  **Do not share your API key publicly.**
+...
+
+- Start the backend server:
+```sh
+uvicorn backend:app --reload
+```
+- The backend will run at `http://localhost:8000`
+
+### 3. Frontend Setup
+
+```sh
+cd frontend
+npm install
+npm start
+```
+- The frontend will run at `http://localhost:3000`
+
+### 4. Using the App
+
+- Open your browser and go to `http://localhost:3000`
+- Ask questions about the Premier League 2024-2025 season!
+- The frontend will communicate with the backend at `http://localhost:8000`
+
+---
+
+**Troubleshooting:**
+- Make sure both backend and frontend servers are running.
+- If you get errors about missing dependencies, install them as shown above.
+- If you need to re-create the database, follow instructions in `load_dataset.py`.
+
+---
+
+**Summary:**  
+- Clone the repo, install dependencies, run backend and frontend, and open the app in your browser!
