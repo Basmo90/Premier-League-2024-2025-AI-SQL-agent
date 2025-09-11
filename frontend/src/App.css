@@ -1,0 +1,363 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+   background: linear-gradient(120deg, #536bb7 0%, #f7f9fc 100%);
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  
+}
+
+h1.title {
+  font-family: 'Permanent Marker', cursive, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #0e0e0f;
+  margin-bottom: 24px;
+  
+}
+
+h3.subtitle {
+  font-family: 'Permanent Marker', cursive, sans-serif;
+}
+
+.query-form {
+  width: 80%;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.query-input {
+  flex: 1;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.query-input:focus {
+  border-color: #2563eb;
+}
+
+.submit-btn {
+  padding: 12px 24px;
+  font-size: 1rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.submit-btn:disabled {
+  background: #a5b4fc;
+  cursor: not-allowed;
+}
+
+.result-area {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px;
+}
+
+.result {
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 16px;
+  width: 100%;
+  color: #222;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+}
+.result-box {
+  background: #fff;
+  border: 2px solid #e3e3e3;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  min-width: 350px;
+  max-width: 600px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  font-size: 1.1rem;
+  color: #222;
+  white-space: pre-wrap;
+}
+
+.result-box, .top-table {
+  box-shadow: 0 4px 16px rgba(37,99,235,0.08);
+  border: 2px solid rgb(207, 206, 206);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.result-box:hover, .top-table:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(37,99,235,0.15);
+}
+
+.history-area {
+  margin-top: 2rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.history-table {
+  width: 90%;
+  margin-top: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;           /* Add this */
+  border-collapse: separate;  /* Add this */
+  border-spacing: 0;          /* Add this */
+  /* Remove border: 1px solid #e3e3e3; from here */
+}
+
+.history-table th, .history-table td {
+  border: 1px solid #e3e3e3;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.history-table th {
+  background: #f0f4f8;
+  font-weight: 600;
+}
+
+.stat-carousel {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  height: 32px; /* Smaller than h3 */
+  margin-bottom: 12px;
+  position: relative;
+  background: #f8f8f8;
+  
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 0 32px; /* Add horizontal padding for gap */
+  box-sizing: border-box; /* Ensure padding doesn't overflow */  
+}
+
+.carousel-track {
+  display: flex;
+  animation: scroll-left 30s linear infinite;
+  white-space: nowrap;
+  align-items: center;
+  height: 100%;
+  
+}
+
+.player-category-carousel {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  height: 32px; /* Smaller than h3 */
+  margin-bottom: 12px;
+  position: relative;
+  background: #f8f8f8;
+ 
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 0 32px; /* Add horizontal padding for gap */
+  box-sizing: border-box; /* Ensure padding doesn't overflow */
+}
+.player-carousel-track {
+  display: flex;
+  animation: scroll-left-player 50s linear infinite;
+  white-space: nowrap;
+  align-items: center;
+  height: 100%;
+}
+
+.carousel-item {
+  display: inline-block;
+  padding: 0 24px;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes scroll-left-player {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.top-tables-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  padding-top: 50px;
+}
+
+.top-table {
+  flex: 1 1 300px;
+  max-width: fit-content;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 1rem;
+  font-size: 0.95rem;
+}
+
+.top-table h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.top-table .history-table {
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.top-table th, .top-table td {
+  padding: 0.3rem 0.5rem;
+}
+
+/* Highlight top 3 rows in tables */
+.top-table tbody tr:first-child {
+  background: #ffe066;
+  font-weight: bold;
+}
+.top-table tbody tr:first-child td:first-child::before {
+  content: "🏆 ";
+}
+.top-table tbody tr:nth-child(2) {
+  background: silver;
+}
+.top-table tbody tr:nth-child(3) {
+  background: rgba(167, 112, 10, 0.79);
+}
+
+/* Subtle hover effect */
+.top-table tbody tr:hover {
+  background: #e0e7ff;
+  transition: background 0.2s;
+}
+
+/* Add at the end of App.css */
+.spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 48px;
+  margin: 16px 0;
+}
+
+.spinner-circle {
+  width: 32px;
+  height: 32px;
+  border: 4px solid #2563eb;
+  border-top: 4px solid #f8f8f8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.footer {
+  width: 100%;
+  text-align: center;
+  padding: 1rem 0;
+  background: #f8f8f8;
+  color: #2563eb;
+  font-size: 1rem;
+  margin-top: 2rem;
+  border-top: 1px solid #e3e3e3;
+}
+
+.footer a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .top-tables-row {
+    flex-direction: column;
+    gap: 24px;
+    align-items: center;
+  }
+  .top-table {
+    max-width: 95vw;
+    width: 100%;
+  }
+  .result-box {
+    min-width: 0;
+    max-width: 98vw;
+  }
+  .history-table {
+    width: 100%;
+  }
+  .stat-carousel,
+  .player-category-carousel {
+    height: 40px;
+    font-size: 0.9rem;
+  }
+}
