@@ -181,18 +181,31 @@ h3.subtitle {
   font-weight: 600;
 }
 
-.stat-carousel {
+.carousel-wrapper {
   width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  background: #f8f8f8;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  height: 32px;
+}
+
+.carousel-label {
+  font-weight: bold;
+  color: #2563eb;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.stat-carousel {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
-  height: 32px; /* Smaller than h3 */
-  margin-bottom: 12px;
+  height: 32px;
   position: relative;
-  background: #f8f8f8;
-  
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  padding: 0 32px; /* Add horizontal padding for gap */
-  box-sizing: border-box; /* Ensure padding doesn't overflow */  
 }
 
 .carousel-track {
@@ -201,21 +214,17 @@ h3.subtitle {
   white-space: nowrap;
   align-items: center;
   height: 100%;
-  
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .player-category-carousel {
-  width: 100%;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
-  height: 32px; /* Smaller than h3 */
-  margin-bottom: 12px;
+  height: 32px;
   position: relative;
-  background: #f8f8f8;
- 
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  padding: 0 32px; /* Add horizontal padding for gap */
-  box-sizing: border-box; /* Ensure padding doesn't overflow */
 }
 .player-carousel-track {
   display: flex;
@@ -223,6 +232,9 @@ h3.subtitle {
   white-space: nowrap;
   align-items: center;
   height: 100%;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .carousel-item {
@@ -235,13 +247,13 @@ h3.subtitle {
 }
 
 @keyframes scroll-left {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 
 @keyframes scroll-left-player {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 
 .top-tables-row {
