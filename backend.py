@@ -105,10 +105,13 @@ def detect_stat_and_entity(user_query):
     db_column = None
     
     stat_patterns = {
-        # Goals
+        # Own goals MUST come before goals so "own goal" is checked first
+        'own_goals': {'col': 'Own Goals', 'keywords': ['own goal', 'own goals']},
+        # Goals conceded MUST come before goals so "conceded" is checked first
+        'goals_conceded': {'col': 'Goals Conceded', 'keywords': ['conceded', 'concede', 'leaked', 'goals conceded']},
         'goals': {'col': 'Goals', 'keywords': ['goal', 'goals', 'scored', 'scoring', 'scorer']},
-        'goals_conceded': {'col': 'Goals Conceded', 'keywords': ['conceded', 'concede', 'leaked']},
         'xg': {'col': 'XG', 'keywords': ['xg', 'expected goals']},
+        'xa': {'col': 'XA', 'keywords': ['xa', 'expected assists']},
         
         # Assists  
         'assists': {'col': 'Assists', 'keywords': ['assist', 'assists', 'assisted', 'playmaker']},
@@ -126,17 +129,18 @@ def detect_stat_and_entity(user_query):
         'hit_woodwork': {'col': 'Hit Woodwork', 'keywords': ['woodwork', 'hit the post', 'hit the bar', 'post', 'crossbar']},
         
         # Touches
-        'touches_opposition_box': {'col': 'Touches in the Opposition Box', 'keywords': ['touches in the opposition box', 'touches in opposition box', 'touches in the box', 'touches in box']},
+        'touches_opposition_box': {'col': 'Touches in the Opposition Box', 'keywords': ['touches in the opposition box', 'touches in opposition box', 'touches in the box', 'touches in box', 'touches']},
         
         # Passing - order matters: specific terms first!
         'long_pass_accuracy': {'col': 'long_pass_accuracy', 'keywords': ['long pass accuracy', 'long passing accuracy']},
         'pass_accuracy': {'col': 'pass_accuracy', 'keywords': ['pass accuracy', 'passing accuracy']},
         'cross_accuracy': {'col': 'cross_accuracy', 'keywords': ['cross accuracy', 'crossing accuracy']},
         'dribble_accuracy': {'col': 'dribble_accuracy', 'keywords': ['dribble accuracy', 'dribbling accuracy']},
-        'pass_attempts': {'col': 'pass_attempts', 'keywords': ['pass attempts']},
         'long_pass_attempts': {'col': 'long_pass_attempts', 'keywords': ['long pass attempts']},
+        'pass_attempts': {'col': 'pass_attempts', 'keywords': ['pass attempts']},
+        'cross_attempts': {'col': 'cross_attempts', 'keywords': ['cross attempts']},
+        'long_passes': {'col': 'long_passes', 'keywords': ['long passes', 'long pass']},
         'passes': {'col': 'Passes', 'keywords': ['passes', 'passing', 'completed passes']},
-        'long_passes': {'col': 'long_passes', 'keywords': ['long passes']},
         'crosses': {'col': 'crosses', 'keywords': ['cross', 'crosses', 'crossing']},
         'corners': {'col': 'Corners Taken', 'keywords': ['corner', 'corners']},
         
@@ -151,20 +155,22 @@ def detect_stat_and_entity(user_query):
         'blocks': {'col': 'Blocks', 'keywords': ['block', 'blocks', 'blocked']},
         'clearances': {'col': 'Clearances', 'keywords': ['clearance', 'clearances', 'cleared']},
         
-        # Physical
+        # Physical - aerial duels MUST come before duels
+        'aerial_duels': {'col': 'Aerial Duels Won', 'keywords': ['aerial duel', 'aerial duels', 'aerial', 'header', 'headers']},
         'duels': {'col': 'Duels Won', 'keywords': ['duel', 'duels']},
-        'aerial_duels': {'col': 'Aerial Duels Won', 'keywords': ['aerial', 'header', 'headers']},
         
         # Appearance/Time
+        'sub_appearances': {'col': 'sub_appearances', 'keywords': ['sub appearances', 'substitute appearances', 'came off the bench']},
         'appearances': {'col': 'Appearances', 'keywords': ['appearance', 'appearances', 'games', 'matches']},
         'minutes': {'col': 'Minutes Played', 'keywords': ['minutes', 'time', 'played']},
         
         # Penalties - specific first
         'penalty_save_percentage': {'col': 'penalty_save_precentage', 'keywords': ['penalty save percentage', 'penalty save rate']},
+        'penalties_faced': {'col': 'Penalties Faced', 'keywords': ['penalties faced', 'penalty faced']},
         'penalties_saved': {'col': 'penalties_saved', 'keywords': ['penalties saved', 'penalty saved']},
         'penalties_scored': {'col': 'penalties_scored', 'keywords': ['penalties scored', 'penalty scored']},
         'penalties_taken': {'col': 'Penalties Taken', 'keywords': ['penalties taken']},
-        'penalties': {'col': 'penalties', 'keywords': ['penalty', 'penalties', 'spot kick']},
+        'penalties_awarded': {'col': 'penalties', 'keywords': ['penalties awarded', 'penalty awarded', 'spot kick', 'penalty', 'penalties']},
         
         # Free kicks - specific first
         'free_kicks_scored': {'col': 'free_kicks_scored', 'keywords': ['free kicks scored', 'free kick scored', 'free kick goals']},
@@ -176,22 +182,54 @@ def detect_stat_and_entity(user_query):
         
         # Offsides
         'offsides': {'col': 'Offsides', 'keywords': ['offside', 'offsides']},
-        'own_goals': {'col': 'Own Goals', 'keywords': ['own goal', 'own goals']},
+        
+        # Player info
+        'nationality': {'col': 'Nationality', 'keywords': ['nationality', 'country', 'nation']},
+        'preferred_foot': {'col': 'Preferred Foot', 'keywords': ['preferred foot', 'left foot', 'right foot', 'footed']},
+        'date_of_birth': {'col': 'Date of Birth', 'keywords': ['date of birth', 'birthday', 'born', 'age', 'oldest', 'youngest']},
     }
     
-    for stat_name, info in stat_patterns.items():
-        keywords = info['keywords']
-        print(f"🔍 DEBUG: Checking stat '{stat_name}' with keywords: {keywords}")
-        
-        for keyword in keywords:
-            if keyword in query_lower:
-                print(f"✅ DEBUG: MATCH FOUND! '{keyword}' matches stat '{stat_name}'")
-                stat_detected = stat_name
-                db_column = info['col']
-                print(f"🎯 DEBUG: Setting stat_detected='{stat_detected}', db_column='{db_column}'")
-                break
-        if stat_detected:
+    # Phase 1: Compound stat detection for terms that may not be adjacent
+    # e.g. "scored the most penalties" has "scored" and "penalt" separated
+    compound_checks = [
+        # (required_fragments, stat_name, db_column) — most specific first
+        (['penalt', 'save', 'percent'], 'penalty_save_percentage', 'penalty_save_precentage'),
+        (['penalt', 'save', 'rate'], 'penalty_save_percentage', 'penalty_save_precentage'),
+        (['penalt', 'scored'], 'penalties_scored', 'penalties_scored'),
+        (['penalt', 'convert'], 'penalties_scored', 'penalties_scored'),
+        (['penalt', 'save'], 'penalties_saved', 'penalties_saved'),
+        (['penalt', 'awarded'], 'penalties_awarded', 'penalties'),
+        (['penalt', 'given'], 'penalties_awarded', 'penalties'),
+        (['penalt', 'won'], 'penalties_awarded', 'penalties'),
+        (['penalt', 'faced'], 'penalties_faced', 'Penalties Faced'),
+        (['penalt', 'took'], 'penalties_taken', 'Penalties Taken'),
+        (['penalt', 'take'], 'penalties_taken', 'Penalties Taken'),
+        (['scored', 'free kick'], 'free_kicks_scored', 'free_kicks_scored'),
+        (['took', 'free kick'], 'free_kicks_taken', 'free_kicks_taken'),
+    ]
+    
+    for fragments, comp_stat, comp_col in compound_checks:
+        if all(f in query_lower for f in fragments):
+            print(f"✅ DEBUG: Compound match! {fragments} -> '{comp_stat}'")
+            stat_detected = comp_stat
+            db_column = comp_col
             break
+    
+    # Phase 2: Standard keyword matching (only if compound check didn't match)
+    if not stat_detected:
+        for stat_name, info in stat_patterns.items():
+            keywords = info['keywords']
+            print(f"🔍 DEBUG: Checking stat '{stat_name}' with keywords: {keywords}")
+            
+            for keyword in keywords:
+                if keyword in query_lower:
+                    print(f"✅ DEBUG: MATCH FOUND! '{keyword}' matches stat '{stat_name}'")
+                    stat_detected = stat_name
+                    db_column = info['col']
+                    print(f"🎯 DEBUG: Setting stat_detected='{stat_detected}', db_column='{db_column}'")
+                    break
+            if stat_detected:
+                break
     
     if not stat_detected:
         print(f"❌ DEBUG: No stat pattern matched in query: '{query_lower}'")
@@ -261,14 +299,17 @@ def get_hardcoded_query(user_query):
             'penalties': 'penalties',
             'penalties_scored': 'penalties_scored',
             'Free Kicks Scored': '"Free Kicks Scored"',
+            'free_kicks_scored': 'free_kicks_scored',
             'Hit Woodwork': '"Hit Woodwork"',
             'crosses': 'crosses',
+            'cross_attempts': 'crosses',
             'cross_accuracy': 'cross_accuracy',
             'Interceptions': 'Interceptions',
             'Blocks': 'Blocks',
             'Clearances': 'Clearances',
             'Passes': 'Passes',
             'long_passes': 'long_passes',
+            'long_pass_attempts': 'long_passes',
             'long_pass_accuracy': 'long_pass_accuracy',
             'Corners Taken': '"Corners Taken"',
             'dribble_attempts': 'dribble_attempts',
@@ -282,21 +323,11 @@ def get_hardcoded_query(user_query):
             'Own Goals': '"Own Goals"',
             'penalties_saved': 'penalties_saved',
             'penalty_save_precentage': 'penalty_save_precentage',
-            'free_kicks_taken': 'free_kicks_taken',
-            'free_kicks_scored': 'free_kicks_scored',
             'Penalties Taken': '"Penalties Taken"',
+            'free_kicks_taken': 'free_kicks_taken',
         }
         
         final_column = team_column_map.get(db_column, db_column)
-        
-        # Special case: for defensive stats, show defensive context
-        if stat in ['goals_conceded', 'clean_sheets']:
-            return f"""
-            SELECT club_name, {final_column}, "Clean Sheets"
-            FROM datasets_club_stats_2024_season_club_stats_csv 
-            ORDER BY {final_column} {direction}
-            LIMIT 5
-            """
         
         # Standard team query
         return f"""
@@ -320,7 +351,7 @@ def get_hardcoded_query(user_query):
             'appearances_': 'p.appearances_',
             'sub_appearances': 'p.sub_appearances',
             'Minutes Played': 'p."Minutes Played"',
-            'Shots On Target': 'p."Shots On Target Inside the Box"',
+            'Shots On Target': '(p."Shots On Target Inside the Box" + p."Shots On Target Outside the Box")',
             'Shots On Target Inside the Box': 'p."Shots On Target Inside the Box"',
             'Shots On Target Outside the Box': 'p."Shots On Target Outside the Box"',
             'Touches in the Opposition Box': 'p."Touches in the Opposition Box"',
@@ -336,7 +367,7 @@ def get_hardcoded_query(user_query):
             'Offsides': 'p.Offsides',
             'Own Goals': 'p."Own Goals"',
             'Hit Woodwork': 'p."Hit Woodwork"',
-            'Passes': 'p.Passes',
+            'Passes': 'p.pass_attempts',
             'pass_attempts': 'p.pass_attempts',
             'pass_accuracy': 'p.pass_accuracy',
             'long_pass_attempts': 'p.long_pass_attempts',
@@ -347,8 +378,8 @@ def get_hardcoded_query(user_query):
             'dribble_attempts': 'p.dribble_attempts',
             'dribble_accuracy': 'p.dribble_accuracy',
             'Corners Taken': 'p."Corners Taken"',
-            'penalties': 'p."Penalties Taken"',
-            'Penalties Taken': 'p."Penalties Taken"',
+            'penalties': 'p.penalty_attempts',
+            'Penalties Taken': 'p.penalty_attempts',
             'Penalties Faced': 'p."Penalties Faced"',
             'penalty_attempts': 'p.penalty_attempts',
             'penalties_scored': 'p.penalties_scored',
@@ -356,6 +387,7 @@ def get_hardcoded_query(user_query):
             'penalty_save_precentage': 'p.penalty_save_precentage',
             'free_kick_attempts': 'p.free_kick_attempts',
             'free_kicks_scored': 'p.free_kicks_scored',
+            'free_kicks_taken': 'p.free_kick_attempts',
             'Nationality': 'p.Nationality',
             'Preferred Foot': 'p."Preferred Foot"',
             'Date of Birth': 'p."Date of Birth"',
@@ -363,23 +395,31 @@ def get_hardcoded_query(user_query):
         
         final_column = player_column_map.get(db_column, f's.{db_column}')
         
+        # For computed expressions, use alias in SELECT for clean column names
+        if final_column.startswith('('):
+            select_expr = f'{final_column} AS "{stat}"'
+            order_expr = final_column
+        else:
+            select_expr = final_column
+            order_expr = final_column
+        
         # Special stats that need goalkeeper filtering
         if stat in ['saves', 'goals_conceded', 'clean_sheets']:
             return f"""
-            SELECT p.player_name, i.player_club, {final_column}
+            SELECT p.player_name, i.player_club, {select_expr}
             FROM datasets_player_stats_2024_2025_season_csv p
             JOIN datasets_premier_player_info_csv i ON p.player_name = i.player_name
-            WHERE i.player_position LIKE '%GK%'
-            ORDER BY {final_column} {direction}
+            WHERE i.player_position = 'Goalkeeper'
+            ORDER BY {order_expr} {direction}
             LIMIT 5
             """
         
         # Regular player query
         return f"""
-        SELECT p.player_name, i.player_club, {final_column}
+        SELECT p.player_name, i.player_club, {select_expr}
         FROM datasets_player_stats_2024_2025_season_csv p
         JOIN datasets_premier_player_info_csv i ON p.player_name = i.player_name
-        ORDER BY {final_column} {direction}
+        ORDER BY {order_expr} {direction}
         LIMIT 5
         """
 
