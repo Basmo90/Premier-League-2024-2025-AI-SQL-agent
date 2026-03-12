@@ -20,7 +20,7 @@ pip-delete-this-directory.txt
 *.db
 *.sqlite
 *.sqlite3
-pl_data.db
+!pl_data.db
 
 # Logs
 *.log
