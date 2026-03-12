@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useMemo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import './App.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9000';
@@ -66,6 +66,15 @@ function App() {
   const [topTeamsXG, setTopTeamsXG] = useState([]);
   const [topTeamsYC, setTopTeamsYC] = useState([]);
   const [hasQueried, setHasQueried] = useState(false);
+  const [enrichment, setEnrichment] = useState(null);
+  const [explanation, setExplanation] = useState(null);
+  const [leagueTable, setLeagueTable] = useState([]);
+  const [h2hName1, setH2hName1] = useState("");
+  const [h2hName2, setH2hName2] = useState("");
+  const [h2hType, setH2hType] = useState("players");
+  const [h2hResult, setH2hResult] = useState(null);
+  const [h2hLoading, setH2hLoading] = useState(false);
+  const [h2hError, setH2hError] = useState("");
 
   // Fetch top 10 most asked questions from backend
   const fetchHistory = async () => {
@@ -92,12 +101,18 @@ function App() {
       .then(res => res.json())
       .then(data => setTopTeamsYC(Array.isArray(data) ? data : []))
       .catch(() => setTopTeamsYC([]));
+    fetch(`${API_BASE_URL}/league-table`)
+      .then(res => res.json())
+      .then(data => setLeagueTable(Array.isArray(data) ? data : []))
+      .catch(() => setLeagueTable([]));
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setResult([]);
+    setEnrichment(null);
+    setExplanation(null);
     setHasQueried(true);
     
     console.log("🔍 QUERY DEBUG - Starting query:", query);
@@ -126,6 +141,12 @@ function App() {
         console.log("✅ QUERY DEBUG - Success! Results count:", data.answer.length);
         console.log("✅ QUERY DEBUG - First result:", data.answer[0]);
         setResult(data.answer);
+        if (data.enrichment) {
+          setEnrichment(data.enrichment);
+        }
+        if (data.explanation) {
+          setExplanation(data.explanation);
+        }
       } else {
         console.log("⚠️ QUERY DEBUG - No results found. Data.answer:", data.answer);
         setResult([{ 
@@ -135,7 +156,7 @@ function App() {
             "Who scored the most goals?",
             "Which team has most yellow cards?", 
             "Show me players with most assists",
-            "Which team has the best defense?"
+            "Which team has the best defence?"
           ]
         }]);
       }
@@ -148,6 +169,40 @@ function App() {
       setResult([{ type: "error", details: "Error connecting to backend. Please check if the server is running." }]);
     }
     setLoading(false);
+  };
+
+  // Quick chip handler
+  const handleChipClick = (question) => {
+    setQuery(question);
+    // Auto-submit
+    setTimeout(() => {
+      document.querySelector('.query-form').requestSubmit();
+    }, 50);
+  };
+
+  // Head-to-head comparison handler
+  const handleCompare = async (e) => {
+    e.preventDefault();
+    if (!h2hName1.trim() || !h2hName2.trim()) return;
+    setH2hLoading(true);
+    setH2hResult(null);
+    setH2hError("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/compare`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name1: h2hName1, name2: h2hName2, compare_type: h2hType })
+      });
+      const data = await response.json();
+      if (data.error) {
+        setH2hError(data.error);
+      } else {
+        setH2hResult(data);
+      }
+    } catch (error) {
+      setH2hError("Failed to connect to backend.");
+    }
+    setH2hLoading(false);
   };
 
   // Helper to format field names
@@ -172,23 +227,50 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1 className="title">Premier League AI Agent</h1>
-      <StatCarousel />
-      <PlayerCarousel />
-      <h3 className="subtitle">Ask any question about the Premier League 2024-2025 season!</h3>
-      <form className="query-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          className="query-input"
-          placeholder="Try: 'Who scored the most goals?' (players) or 'Which team scored the most goals?' (teams)"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          disabled={loading}
-        />
-        <button type="submit" className="submit-btn" disabled={loading || !query}>
-          {loading ? "Thinking..." : "Ask"}
-        </button>
-      </form>
+      <div className="hero-banner">
+        <h1 className="title">Premier League AI Agent</h1>
+        <StatCarousel />
+        <PlayerCarousel />
+        <h3 className="subtitle">Ask any question about the Premier League 2024-2025 season!</h3>
+        
+        {/* Quick-question chips */}
+        <div className="quick-chips">
+          {[
+            "Top Scorers", "Most Assists", "Best defence", "Most Tackles"
+          ].map((label) => {
+            const chipQueries = {
+              "Top Scorers": "Who scored the most goals?",
+              "Most Assists": "Which players have the most assists?",
+              "Best defence": "Which team has the best defence?",
+              "Most Tackles": "Who has the most tackles?"
+            };
+            return (
+              <button
+                key={label}
+                className="quick-chip"
+                onClick={() => handleChipClick(chipQueries[label])}
+                disabled={loading}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <form className="query-form" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            className="query-input"
+            placeholder="Try: 'Who scored the most goals?' or 'Which team has the best defence?'"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            disabled={loading}
+          />
+          <button type="submit" className="submit-btn" disabled={loading || !query}>
+            {loading ? "Thinking..." : "Ask"}
+          </button>
+        </form>
+      </div>
       <div className="result-area">
         {loading ? (
           <div className="spinner">
@@ -198,7 +280,41 @@ function App() {
           <div className="result-box">
             {Array.isArray(result) && result.length > 0 ? (
               <div>
-                {result.map((item, idx) => {
+                {/* Enrichment card for top result */}
+                {enrichment && (
+                  <div className="enrichment-card">
+                    <div className="enrichment-header">
+                      <span className="enrichment-badge">#1</span>
+                      <span className="enrichment-name">
+                        {enrichment.player_name || enrichment.club_name}
+                      </span>
+                      {enrichment.player_club && (
+                        <span className="enrichment-club">{enrichment.player_club}</span>
+                      )}
+                    </div>
+                    <div className="enrichment-stats">
+                      {Object.entries(enrichment)
+                        .filter(([key]) => !['player_name', 'club_name', 'player_club', 'club_url', 'season'].includes(key))
+                        .map(([key, value]) => (
+                          <div key={key} className="enrichment-stat">
+                            <span className="enrichment-stat-value">{formatValue(key, value)}</span>
+                            <span className="enrichment-stat-label">{formatFieldName(key)}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+                {/* LLM explanation for complex queries */}
+                {explanation && (
+                  <div className="explanation-card">
+                    <div className="explanation-header">
+                      <span className="explanation-icon">💡</span>
+                      <span className="explanation-title">Analysis</span>
+                    </div>
+                    <p className="explanation-text">{explanation}</p>
+                  </div>
+                )}
+                {(enrichment ? result.slice(1) : result).map((item, idx) => {
                   // Handle error responses with suggestions
                   if (item.type === "error" || item.type === "no_results") {
                     return (
@@ -341,7 +457,7 @@ function App() {
                   <div>
                     <p>🤖 Ask me anything about Premier League 2024-25!</p>
                     <p style={{fontSize: "0.9rem", marginTop: "8px"}}>
-                      Examples: "Who scored the most goals?" • "Which team has the best defense?" • "Show me Liverpool players"
+                      Examples: "Who won the most aerial duels?" • "Which team has the best defence?" • "Show me the top scorers this season"
                     </p>
                   </div>
                 )}
@@ -355,13 +471,16 @@ function App() {
         <div className="top-table">
           <h2>Top 10 Players (G + A)</h2>
           <table className="history-table">
+            <colgroup>
+              <col style={{width: '45%'}} />
+              <col style={{width: '40%'}} />
+              <col style={{width: '15%'}} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Player</th>
                 <th>Club</th>
-                <th>Goals 🥅</th>
-                <th>Assists</th>
-                <th>Total</th>
+                <th>G+A</th>
               </tr>
             </thead>
             <tbody>
@@ -369,8 +488,6 @@ function App() {
                 <tr key={idx}>
                   <td>{p.player_name}</td>
                   <td>{p.player_club}</td>
-                  <td>{p.Goals}</td>
-                  <td>{p.Assists}</td>
                   <td>{p.total}</td>
                 </tr>
               ))}
@@ -417,44 +534,35 @@ function App() {
         </div>
       </div>
       <div className="history-area">
-        <h2>Top 10 Most Asked Questions</h2>
+        <h2>Most Popular Stats</h2>
         <table className="history-table">
           <thead>
             <tr>
-              <th>Question</th>
-              <th>Count</th>
-              <th>Result</th>
+              <th>Stat</th>
+              <th>Type</th>
+              <th>Frequency</th>
+              <th>#1 Result</th>
             </tr>
           </thead>
           <tbody>
             {Array.isArray(history) && history.map((item, idx) => (
               <tr key={idx}>
-                <td>{item.question}</td>
+                <td>{formatFieldName(item.stat)}</td>
+                <td>{item.entity_type === 'team' ? '🏟️ Team' : '👤 Player'}</td>
                 <td>{item.count}</td>
                 <td>
-                  {Array.isArray(item.answer) ? (
-                    item.answer.map((ans, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
-                        {ans.image_url && (
-                          <img
-                            src={ans.image_url}
-                            alt={ans.name || ans.player_name || "result"}
-                            style={{ width: 32, height: 32, marginRight: 8, borderRadius: "50%" }}
-                          />
-                        )}
-                        <div>
-                          {Object.entries(ans)
-                            .filter(([key]) => key !== "image_url" && key !== "type")
-                            .map(([key, value]) => (
-                              <div key={key}>
-                                <strong>{formatFieldName(key)}:</strong> {value}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    ))
+                  {item.top_result && typeof item.top_result === 'object' ? (
+                    <div>
+                      {Object.entries(item.top_result)
+                        .filter(([key]) => key !== "image_url" && key !== "type" && key !== "club_url" && key !== "season")
+                        .map(([key, value]) => (
+                          <span key={key} style={{ marginRight: 12 }}>
+                            <strong>{formatFieldName(key)}:</strong> {formatValue(key, value)}
+                          </span>
+                        ))}
+                    </div>
                   ) : (
-                    <pre>{item.answer}</pre>
+                    <span>—</span>
                   )}
                 </td>
               </tr>
@@ -462,6 +570,108 @@ function App() {
           </tbody>
         </table>
       </div>
+
+      {/* Head-to-Head Comparison */}
+      <div className="h2h-section">
+        <h2>⚔️ Head-to-Head Comparison</h2>
+        <form className="h2h-form" onSubmit={handleCompare}>
+          <div className="h2h-toggle">
+            <button type="button" className={`h2h-toggle-btn ${h2hType === 'players' ? 'active' : ''}`}
+              onClick={() => { setH2hType('players'); setH2hResult(null); setH2hError(''); }}>
+              👤 Players
+            </button>
+            <button type="button" className={`h2h-toggle-btn ${h2hType === 'teams' ? 'active' : ''}`}
+              onClick={() => { setH2hType('teams'); setH2hResult(null); setH2hError(''); }}>
+              🏟️ Teams
+            </button>
+          </div>
+          <div className="h2h-inputs">
+            <input type="text" className="h2h-input" placeholder={h2hType === 'players' ? 'Player 1 (e.g. Salah)' : 'Team 1 (e.g. Liverpool)'}
+              value={h2hName1} onChange={e => setH2hName1(e.target.value)} />
+            <span className="h2h-vs">VS</span>
+            <input type="text" className="h2h-input" placeholder={h2hType === 'players' ? 'Player 2 (e.g. Haaland)' : 'Team 2 (e.g. Arsenal)'}
+              value={h2hName2} onChange={e => setH2hName2(e.target.value)} />
+          </div>
+          <button type="submit" className="h2h-btn" disabled={h2hLoading || !h2hName1 || !h2hName2}>
+            {h2hLoading ? 'Comparing...' : 'Compare'}
+          </button>
+        </form>
+        {h2hError && <p className="h2h-error">{h2hError}</p>}
+        {h2hResult && (
+          <div className="h2h-results">
+            <div className="h2h-card">
+              <h3>{h2hResult.entity1.player_name || h2hResult.entity1.club_name}</h3>
+              {h2hResult.entity1.player_club && <p className="h2h-sub">{h2hResult.entity1.player_club}</p>}
+              {h2hResult.entity1.player_position && <p className="h2h-sub">{h2hResult.entity1.player_position}</p>}
+            </div>
+            <div className="h2h-stats-compare">
+              {Object.keys(h2hResult.entity1)
+                .filter(k => !['player_name','club_name','player_club','player_position','club_url','season'].includes(k))
+                .map(key => {
+                  const v1 = h2hResult.entity1[key];
+                  const v2 = h2hResult.entity2[key];
+                  const isNum = typeof v1 === 'number' && typeof v2 === 'number';
+                  const winner = isNum ? (v1 > v2 ? 1 : v2 > v1 ? 2 : 0) : 0;
+                  return (
+                    <div key={key} className="h2h-stat-row">
+                      <span className={`h2h-val ${winner === 1 ? 'h2h-winner' : ''}`}>{formatValue(key, v1)}</span>
+                      <span className="h2h-stat-name">{formatFieldName(key)}</span>
+                      <span className={`h2h-val ${winner === 2 ? 'h2h-winner' : ''}`}>{formatValue(key, v2)}</span>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="h2h-card">
+              <h3>{h2hResult.entity2.player_name || h2hResult.entity2.club_name}</h3>
+              {h2hResult.entity2.player_club && <p className="h2h-sub">{h2hResult.entity2.player_club}</p>}
+              {h2hResult.entity2.player_position && <p className="h2h-sub">{h2hResult.entity2.player_position}</p>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* League Table */}
+      <div className="league-table-section">
+        <h2>🏆 2024-25 Premier League Table</h2>
+        <table className="league-table">
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Club</th>
+              <th>GF</th>
+              <th>GA</th>
+              <th>GD</th>
+              <th>xG</th>
+              <th>YC</th>
+              <th>RC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leagueTable.map((team, idx) => (
+              <tr key={idx} className={
+                idx < 4 ? 'league-ucl' : idx < 6 ? 'league-uel' : idx >= 17 ? 'league-relegated' : ''
+              }>
+                <td>{team.Position}</td>
+                <td>{team.club_name}</td>
+                <td>{team.Goals}</td>
+                <td>{team['Goals Conceded']}</td>
+                <td style={{ color: team.GD > 0 ? '#059669' : team.GD < 0 ? '#dc2626' : '#6b7280', fontWeight: 600 }}>
+                  {team.GD > 0 ? '+' : ''}{team.GD}
+                </td>
+                <td>{team.XG}</td>
+                <td>{team['Yellow Cards']}</td>
+                <td>{team['Red Cards']}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="league-legend">
+          <span className="legend-item"><span className="legend-color ucl"></span> Champions League</span>
+          <span className="legend-item"><span className="legend-color uel"></span> Europa League</span>
+          <span className="legend-item"><span className="legend-color relegated"></span> Relegated</span>
+        </div>
+      </div>
+
       <footer className="footer">
         <span>
           Data source:{" "}
