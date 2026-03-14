@@ -7,6 +7,5 @@ pydantic==2.11.7
 langchain==1.2.12
 langchain-community==0.4.1
 langchain-openai==1.1.11
-sentence-transformers==5.1.0
 kagglehub==1.0.0
 pandas==2.3.2
