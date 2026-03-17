@@ -459,7 +459,7 @@ function App() {
                   </div>
                 ) : (
                   <div>
-                    <p>🤖 The bot may take a while to wake up on your first query but ask me anything about Premier League 2024-25!</p>
+                    <p>🤖 I may take a while to wake up on your first query but ask me anything about the Premier League 2024-25 season!</p>
                     <p style={{fontSize: "0.9rem", marginTop: "8px"}}>
                       Examples: "Who won the most aerial duels?" • "Which team has the best defence?" 
                     </p>
