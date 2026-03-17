@@ -261,12 +261,16 @@ function App() {
           <input
             type="text"
             className="query-input"
-            placeholder="Try: 'Who scored the most goals?' or 'Which team has the best defence?'"
+            placeholder="Example: 'Compare the attack of Aston Villa and Brighton'"
             value={query}
             onChange={e => setQuery(e.target.value)}
             disabled={loading}
           />
-          <button type="submit" className="submit-btn" disabled={loading || !query}>
+          <button
+            type="submit"
+            className={`submit-btn${loading ? " thinking" : ""}`}
+            disabled={loading || !query}
+          >
             {loading ? "Thinking..." : "Ask"}
           </button>
         </form>
@@ -455,10 +459,11 @@ function App() {
                   </div>
                 ) : (
                   <div>
-                    <p>🤖 Ask me anything about Premier League 2024-25!</p>
+                    <p>🤖 The bot may take a while to wake up on your first query but ask me anything about Premier League 2024-25!</p>
                     <p style={{fontSize: "0.9rem", marginTop: "8px"}}>
-                      Examples: "Who won the most aerial duels?" • "Which team has the best defence?" • "Show me the top scorers this season"
+                      Examples: "Who won the most aerial duels?" • "Which team has the best defence?" 
                     </p>
+                    
                   </div>
                 )}
               </div>

@@ -224,6 +224,13 @@ h3.subtitle {
   background: rgba(255,255,255,0.15);
 }
 
+/* Flashing animation for 'Thinking...' state */
+@keyframes slow-flash {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
 .submit-btn {
   padding: 12px 28px;
   font-size: 0.95rem;
@@ -236,6 +243,10 @@ h3.subtitle {
   font-weight: 700;
   letter-spacing: 0.3px;
   transition: all 0.2s;
+}
+
+.submit-btn.thinking {
+  animation: slow-flash 1.2s infinite;
 }
 
 .submit-btn:hover {
